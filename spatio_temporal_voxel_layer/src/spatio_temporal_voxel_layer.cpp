@@ -169,7 +169,7 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
     double observation_keep_time, expected_update_rate, min_obstacle_height, max_obstacle_height;
     double min_z, max_z, vFOV, vFOVPadding;
     double hFOV, decay_acceleration, obstacle_range;
-    std::string topic, sensor_frame, data_type, filter_str;
+    std::string topic, sensor_frame, z_reference_frame, data_type, filter_str;
     bool inf_is_valid = false, clearing, marking;
     bool clear_after_reading, enabled;
     int voxel_min_points;
@@ -196,6 +196,7 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
     declareParameter(source + "." + "horizontal_fov_angle", rclcpp::ParameterValue(1.04));
     declareParameter(source + "." + "decay_acceleration", rclcpp::ParameterValue(0.0));
     declareParameter(source + "." + "filter", rclcpp::ParameterValue(std::string("passthrough")));
+    declareParameter(source + "." + "z_reference_frame", rclcpp::ParameterValue(_global_frame));    
     declareParameter(source + "." + "voxel_min_points", rclcpp::ParameterValue(0));
     declareParameter(source + "." + "clear_after_reading", rclcpp::ParameterValue(false));
     declareParameter(source + "." + "enabled", rclcpp::ParameterValue(true));
@@ -231,6 +232,8 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
     node->get_parameter(name_ + "." + source + "." + "decay_acceleration", decay_acceleration);
     // performs an approximate voxel filter over the data to reduce
     node->get_parameter(name_ + "." + source + "." + "filter", filter_str);
+    // frame in which to calculate z bounds if relative filter is applied
+    node->get_parameter(name_ + "." + source + "." + "z_reference_frame", z_reference_frame);
     // minimum points per voxel for voxel filter
     node->get_parameter(name_ + "." + source + "." + "voxel_min_points", voxel_min_points);
     // clears measurement buffer after reading values from it
@@ -242,15 +245,28 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
     node->get_parameter(name_ + "." + source + "." + "model_type", model_type_int);
     ModelType model_type = static_cast<ModelType>(model_type_int);
 
-    if (filter_str == "passthrough") {
+    switch (filter)
+    {
+    case "passthrough":
       RCLCPP_INFO(logger_, "Passthough filter activated.");
       filter = buffer::Filters::PASSTHROUGH;
-    } else if (filter_str == "voxel") {
+      break;
+    case "voxel":
       RCLCPP_INFO(logger_, "Voxel filter activated.");
       filter = buffer::Filters::VOXEL;
-    } else {
+      break;
+    case "passthrough_relative":
+      RCLCPP_INFO(logger_, "Relative Passthough filter activated.");
+      filter = buffer::Filters::PASSTHROUGH_RELATIVE;
+      break;
+    case "voxel_relative":
+      RCLCPP_INFO(logger_, "Relative Voxel filter activated.");
+      filter = buffer::Filters::VOXEL_RELATIVE;
+      break;    
+    default:
       RCLCPP_INFO(logger_, "No filters activated.");
       filter = buffer::Filters::NONE;
+      break;
     }
 
     if (!(data_type == "PointCloud2" || data_type == "LaserScan")) {
