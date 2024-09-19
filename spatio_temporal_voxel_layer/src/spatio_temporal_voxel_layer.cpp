@@ -245,28 +245,22 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
     node->get_parameter(name_ + "." + source + "." + "model_type", model_type_int);
     ModelType model_type = static_cast<ModelType>(model_type_int);
 
-    switch (filter)
-    {
-    case "passthrough":
+
+    if (filter_str == "passthrough") {
       RCLCPP_INFO(logger_, "Passthough filter activated.");
       filter = buffer::Filters::PASSTHROUGH;
-      break;
-    case "voxel":
+    } else if (filter_str == "voxel") {
       RCLCPP_INFO(logger_, "Voxel filter activated.");
       filter = buffer::Filters::VOXEL;
-      break;
-    case "passthrough_relative":
+    } else if (filter_str == "passthrough_relative") {
       RCLCPP_INFO(logger_, "Relative Passthough filter activated.");
       filter = buffer::Filters::PASSTHROUGH_RELATIVE;
-      break;
-    case "voxel_relative":
+    } else if (filter_str == "voxel_relative") {
       RCLCPP_INFO(logger_, "Relative Voxel filter activated.");
       filter = buffer::Filters::VOXEL_RELATIVE;
-      break;    
-    default:
+    }  else {
       RCLCPP_INFO(logger_, "No filters activated.");
       filter = buffer::Filters::NONE;
-      break;
     }
 
     if (!(data_type == "PointCloud2" || data_type == "LaserScan")) {
@@ -280,7 +274,7 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
         new buffer::MeasurementBuffer(
           source, topic,
           observation_keep_time, expected_update_rate, min_obstacle_height,
-          max_obstacle_height, obstacle_range, *tf_, _global_frame, sensor_frame,
+          max_obstacle_height, obstacle_range, *tf_, _global_frame, sensor_frame, z_reference_frame,
           transform_tolerance, min_z, max_z, vFOV, vFOVPadding, hFOV,
           decay_acceleration, marking, clearing, _voxel_size,
           filter, voxel_min_points, enabled, clear_after_reading, model_type,
