@@ -78,7 +78,7 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
   RCLCPP_INFO(
     logger_, "%s's global frame is %s.",
     getName().c_str(), _global_frame.c_str());
-
+  
   bool track_unknown_space;
   double transform_tolerance, map_save_time;
   int decay_model_int;
@@ -108,6 +108,12 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
   // clear under robot footprint
   declareParameter("update_footprint_enabled", rclcpp::ParameterValue(true));
   node->get_parameter(name_ + ".update_footprint_enabled", _update_footprint_enabled);
+  // use 3d transform for clearing footprint
+  declareParameter("footprint_projection_enabled", rclcpp::ParameterValue(false));
+  node->get_parameter(name_ + ".footprint_projection_enabled", _footprint_projection_enabled);
+  // footprint frame ( used only with footprint projection enabled )
+  declareParameter("footprint_frame", rclcpp::ParameterValue(std::string("")));
+  node->get_parameter(name_ + ".footprint_frame", _footprint_frame);
   // keep tabs on unknown space
   declareParameter(
     "track_unknown_space",
@@ -543,17 +549,43 @@ bool SpatioTemporalVoxelLayer::updateFootprint(
   double * min_y, double * max_x, double * max_y)
 /*****************************************************************************/
 {
-  // updates layer costmap to include footprint for clearing in voxel grid
+  // Updates layer costmap to include footprint for clearing in voxel grid
   if (!_update_footprint_enabled) {
     return false;
   }
-  nav2_costmap_2d::transformFootprint(
-    robot_x, robot_y, robot_yaw,
-    getFootprint(), _transformed_footprint);
-  for (unsigned int i = 0; i < _transformed_footprint.size(); i++) {
-    touch(
-      _transformed_footprint[i].x, _transformed_footprint[i].y,
-      min_x, min_y, max_x, max_y);
+
+  if (!_footprint_projection_enabled) {
+    // Simple 2D transformation
+    nav2_costmap_2d::transformFootprint(
+      robot_x, robot_y, robot_yaw,
+      getFootprint(), _transformed_footprint);
+    for (unsigned int i = 0; i < _transformed_footprint.size(); i++) {
+      touch(
+        _transformed_footprint[i].x, _transformed_footprint[i].y,
+        min_x, min_y, max_x, max_y);
+    }
+  } else {
+    // Using tf2 for 3d rotation to provide accurate projection of the footprint
+    try {
+      geometry_msgs::msg::TransformStamped tf_footprint_stamped =
+        tf_->lookupTransform(
+          _global_frame, _footprint_frame,
+          rclcpp::Time(0)); 
+      
+      _transformed_footprint = getFootprint();
+      for (unsigned int i = 0; i < _transformed_footprint.size(); i++) {
+        tf2::doTransform(_transformed_footprint[i], _transformed_footprint[i], tf_footprint_stamped);       
+        touch(
+          _transformed_footprint[i].x, _transformed_footprint[i].y,
+          min_x, min_y, max_x, max_y);
+      }
+
+    } catch (tf2::TransformException &ex) {
+      RCLCPP_WARN(
+        rclcpp::get_logger("SpatioTemporalVoxelLayer"),
+        "Could not perform a transform for footprint projection: %s", ex.what());
+      return false;
+    }
   }
 
   return true;

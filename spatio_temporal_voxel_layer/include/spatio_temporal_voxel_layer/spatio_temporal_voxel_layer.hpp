@@ -76,7 +76,7 @@
 #include "message_filters/subscriber.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2/buffer_core.h"
-
+#include "tf2_ros/buffer.h"
 namespace spatio_temporal_voxel_layer
 {
 
@@ -180,17 +180,18 @@ private:
   rclcpp::Service<spatio_temporal_voxel_layer::srv::SaveGrid>::SharedPtr _grid_saver;
   std::unique_ptr<rclcpp::Duration> _map_save_duration;
   rclcpp::Time _last_map_save_time;
-  std::string _global_frame;
+  std::string _global_frame, _footprint_frame;
   double _voxel_size, _voxel_decay;
   int _combination_method, _mark_threshold;
   volume_grid::GlobalDecayModel _decay_model;
-  bool _update_footprint_enabled, _enabled;
+  bool _update_footprint_enabled, _footprint_projection_enabled, _enabled;
   std::vector<geometry_msgs::msg::Point> _transformed_footprint;
   std::vector<observation::MeasurementReading> _static_observations;
   std::unique_ptr<volume_grid::SpatioTemporalVoxelGrid> _voxel_grid;
   boost::recursive_mutex _voxel_grid_lock;
 
   std::string _topics_string;
+
 
   // Dynamic parameters handler
   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dyn_params_handler;
