@@ -137,24 +137,7 @@ void MeasurementBuffer::BufferROSCloud(
       return;
     }
 
-   // transform the cloud in the global frame, directly or indirectly to apply relative z filter
     point_cloud_ptr cld_transformed(new sensor_msgs::msg::PointCloud2());
-
-    geometry_msgs::msg::TransformStamped tf_direct_global =
-      _buffer.lookupTransform(
-      _global_frame, cloud.header.frame_id,
-      tf2_ros::fromMsg(cloud.header.stamp));
-
-    geometry_msgs::msg::TransformStamped tf_z_reference =
-      _buffer.lookupTransform(
-      _z_reference_frame, cloud.header.frame_id,
-      tf2_ros::fromMsg(cloud.header.stamp));
-
-    geometry_msgs::msg::TransformStamped tf_global_from_z_reference =
-      _buffer.lookupTransform(
-      _global_frame, _z_reference_frame,
-      tf2_ros::fromMsg(cloud.header.stamp));
-
     pcl::PCLPointCloud2::Ptr cloud_pcl(new pcl::PCLPointCloud2());
     pcl::PCLPointCloud2::Ptr cloud_filtered(new pcl::PCLPointCloud2());
     pcl::PassThrough<pcl::PCLPointCloud2> pass_through_filter;
@@ -166,6 +149,10 @@ void MeasurementBuffer::BufferROSCloud(
     switch (_filter)
     {
     case Filters::PASSTHROUGH :
+      geometry_msgs::msg::TransformStamped tf_direct_global =
+        _buffer.lookupTransform(
+        _global_frame, cloud.header.frame_id,
+        tf2_ros::fromMsg(cloud.header.stamp));
       tf2::doTransform(cloud, *cld_transformed, tf_direct_global);
       pcl_conversions::toPCL(*cld_transformed, *cloud_pcl);
       pass_through_filter.setInputCloud(cloud_pcl);
@@ -177,6 +164,10 @@ void MeasurementBuffer::BufferROSCloud(
       pcl_conversions::fromPCL(*cloud_filtered, *cld_transformed);
       break;
     case Filters::VOXEL :
+      geometry_msgs::msg::TransformStamped tf_direct_global =
+        _buffer.lookupTransform(
+        _global_frame, cloud.header.frame_id,
+        tf2_ros::fromMsg(cloud.header.stamp));
       tf2::doTransform(cloud, *cld_transformed, tf_direct_global);
       pcl_conversions::toPCL(*cld_transformed, *cloud_pcl);
       sor.setInputCloud(cloud_pcl);
@@ -189,6 +180,14 @@ void MeasurementBuffer::BufferROSCloud(
       pcl_conversions::fromPCL(*cloud_filtered, *cld_transformed);
       break;
     case Filters::PASSTHROUGH_RELATIVE :
+      geometry_msgs::msg::TransformStamped tf_z_reference =
+        _buffer.lookupTransform(
+        _z_reference_frame, cloud.header.frame_id,
+        tf2_ros::fromMsg(cloud.header.stamp));
+      geometry_msgs::msg::TransformStamped tf_global_from_z_reference =
+        _buffer.lookupTransform(
+        _global_frame, _z_reference_frame,
+        tf2_ros::fromMsg(cloud.header.stamp));
       tf2::doTransform(cloud, *cld_transformed, tf_z_reference);
       pcl_conversions::toPCL(*cld_transformed, *cloud_pcl);
       pass_through_filter.setInputCloud(cloud_pcl);
@@ -201,6 +200,14 @@ void MeasurementBuffer::BufferROSCloud(
       tf2::doTransform(*cld_transformed, *cld_transformed, tf_global_from_z_reference);
       break;
     case Filters::VOXEL_RELATIVE :
+      geometry_msgs::msg::TransformStamped tf_z_reference =
+        _buffer.lookupTransform(
+        _z_reference_frame, cloud.header.frame_id,
+        tf2_ros::fromMsg(cloud.header.stamp));
+      geometry_msgs::msg::TransformStamped tf_global_from_z_reference =
+        _buffer.lookupTransform(
+        _global_frame, _z_reference_frame,
+        tf2_ros::fromMsg(cloud.header.stamp));
       tf2::doTransform(cloud, *cld_transformed, tf_z_reference);
       pcl_conversions::toPCL(*cld_transformed, *cloud_pcl);
       sor.setInputCloud(cloud_pcl);
@@ -216,7 +223,6 @@ void MeasurementBuffer::BufferROSCloud(
     default:
       tf2::doTransform(cloud, *cld_transformed, tf_direct_global);
       break;
-    
     }
 
     _observation_list.front()._cloud.reset(cld_transformed.release());
