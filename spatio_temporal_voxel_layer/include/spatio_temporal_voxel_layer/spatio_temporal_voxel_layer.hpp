@@ -135,6 +135,9 @@ public:
     std::shared_ptr<spatio_temporal_voxel_layer::srv::SaveGrid::Response> resp);
 
 private:
+  // clock
+  rclcpp::Clock::SharedPtr _clock;
+
   // Sensor callbacks
   void LaserScanCallback(
     sensor_msgs::msg::LaserScan::ConstSharedPtr message,

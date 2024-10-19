@@ -146,10 +146,13 @@ void MeasurementBuffer::BufferROSCloud(
     // remove points that are below or above our height restrictions, and
     // in the same time, remove NaNs and if user wants to use it, combine with a
 
+    geometry_msgs::msg::TransformStamped tf_direct_global, tf_z_reference, tf_global_from_z_reference;
+
+
     switch (_filter)
     {
     case Filters::PASSTHROUGH :
-      geometry_msgs::msg::TransformStamped tf_direct_global =
+      tf_direct_global =
         _buffer.lookupTransform(
         _global_frame, cloud.header.frame_id,
         tf2_ros::fromMsg(cloud.header.stamp));
@@ -164,7 +167,7 @@ void MeasurementBuffer::BufferROSCloud(
       pcl_conversions::fromPCL(*cloud_filtered, *cld_transformed);
       break;
     case Filters::VOXEL :
-      geometry_msgs::msg::TransformStamped tf_direct_global =
+      tf_direct_global =
         _buffer.lookupTransform(
         _global_frame, cloud.header.frame_id,
         tf2_ros::fromMsg(cloud.header.stamp));
@@ -180,11 +183,11 @@ void MeasurementBuffer::BufferROSCloud(
       pcl_conversions::fromPCL(*cloud_filtered, *cld_transformed);
       break;
     case Filters::PASSTHROUGH_RELATIVE :
-      geometry_msgs::msg::TransformStamped tf_z_reference =
+      tf_z_reference =
         _buffer.lookupTransform(
         _z_reference_frame, cloud.header.frame_id,
         tf2_ros::fromMsg(cloud.header.stamp));
-      geometry_msgs::msg::TransformStamped tf_global_from_z_reference =
+      tf_global_from_z_reference =
         _buffer.lookupTransform(
         _global_frame, _z_reference_frame,
         tf2_ros::fromMsg(cloud.header.stamp));
@@ -200,11 +203,11 @@ void MeasurementBuffer::BufferROSCloud(
       tf2::doTransform(*cld_transformed, *cld_transformed, tf_global_from_z_reference);
       break;
     case Filters::VOXEL_RELATIVE :
-      geometry_msgs::msg::TransformStamped tf_z_reference =
+      tf_z_reference =
         _buffer.lookupTransform(
         _z_reference_frame, cloud.header.frame_id,
         tf2_ros::fromMsg(cloud.header.stamp));
-      geometry_msgs::msg::TransformStamped tf_global_from_z_reference =
+      tf_global_from_z_reference =
         _buffer.lookupTransform(
         _global_frame, _z_reference_frame,
         tf2_ros::fromMsg(cloud.header.stamp));

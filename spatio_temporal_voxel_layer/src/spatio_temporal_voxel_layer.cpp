@@ -164,6 +164,8 @@ void SpatioTemporalVoxelLayer::onInitialize(void)
     node->get_clock(), _voxel_size, static_cast<double>(default_value_), _decay_model,
     _voxel_decay, _publish_voxels);
 
+  _clock = node->get_clock();
+
   matchSize();
 
   RCLCPP_INFO(logger_, "%s created underlying voxel grid.", getName().c_str());
@@ -566,10 +568,11 @@ bool SpatioTemporalVoxelLayer::updateFootprint(
   } else {
     // Using tf2 for 3d rotation to provide accurate projection of the footprint
     try {
+      rclcpp::Time current_time = _clock->now();
       geometry_msgs::msg::TransformStamped tf_footprint_stamped =
         tf_->lookupTransform(
           _global_frame, _robot_base_frame,
-          rclcpp::Clock.now()); 
+          current_time ); 
       for (unsigned int i = 0; i < _transformed_footprint.size(); i++) {
         tf2::doTransform(_transformed_footprint[i], _transformed_footprint[i], tf_footprint_stamped);       
         touch(
