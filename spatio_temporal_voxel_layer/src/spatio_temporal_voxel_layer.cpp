@@ -570,11 +570,10 @@ bool SpatioTemporalVoxelLayer::updateFootprint(
         tf_->lookupTransform(
           _global_frame, _robot_base_frame,
           rclcpp::Clock.now()); 
-      std::vector<geometry_msgs::Point> temp_footprint = getFootprint();
-      for (unsigned int i = 0; i < temp_footprint.size(); i++) {
-        tf2::doTransform(temp_footprint[i], temp_footprint[i], tf_footprint_stamped);       
+      for (unsigned int i = 0; i < _transformed_footprint.size(); i++) {
+        tf2::doTransform(_transformed_footprint[i], _transformed_footprint[i], tf_footprint_stamped);       
         touch(
-          temp_footprint[i].x, temp_footprint[i].y,
+          _transformed_footprint[i].x, _transformed_footprint[i].y,
           min_x, min_y, max_x, max_y);
       }
     } catch (tf2::TransformException &ex) {
